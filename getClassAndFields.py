@@ -52,7 +52,6 @@ def print_annotations(modifiers):
     for modifier in modifiers:
         if modifier.__class__.__name__ is 'Annotation':
             print('\t@' + modifier.name.value + get_annotation_argument(modifier.single_member))
-            # print('\t' + str(modifier.single_member))
 
 
 def print_field_name(field_decl, var_decl):
