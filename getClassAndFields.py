@@ -16,7 +16,7 @@ def print_imports(tree):
 # Assumed to only contain one outer-level class as per style guide
 def get_class_declaration(tree):
     if len(tree.type_declarations) is 0:
-        raise ParserExceptions.ClassNotFoundError('Unable to find Java class in ' + sys.argv[1])
+        raise ParserExceptions.ClassNotFoundException('Unable to find Java class in ' + sys.argv[1])
     return tree.type_declarations[0]
 
 
@@ -66,6 +66,8 @@ def main():
     # Parse the Java file
     p = plyj.parser.Parser()
     tree = p.parse_file(sys.argv[1])
+    if tree is None:
+        raise ParserExceptions.JavaSyntaxException("Error parsing syntax for file: " + sys.argv[1])
 
     # Get class information
     class_decl = get_class_declaration(tree)
