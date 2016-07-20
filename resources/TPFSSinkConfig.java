@@ -74,6 +74,10 @@ public abstract class TPFSSinkConfig extends PluginConfig {
   @Nullable
   protected String cleanPartitionsOlderThan;
 
+  @Description("A test description.")
+  @Macro
+  protected String testProperty;
+
   public TPFSSinkConfig(String name, @Nullable String basePath,
                         @Nullable String filePathFormat, @Nullable String timeZone) {
     this.name = name;
