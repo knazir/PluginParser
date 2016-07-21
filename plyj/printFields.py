@@ -7,6 +7,7 @@ import sys
 import plyj.parser
 import plyj.model as m
 
+
 def parse_file():
     p = plyj.parser.Parser()
     tree = p.parse_file(sys.argv[1])
@@ -41,9 +42,11 @@ def reconstruct_argument(single_member):
         # strip opening and closing double quotes
         return single_member.value[1:-1]
     elif single_member.__class__.__name__ is not 'Additive':
-        return 'UNSUPPORTED ANNOTATION ARGUMENT: ' + single_member.__class__.__name__
+        raise ParserExceptions.UnsupportedAnnotationOperationException('UNSUPPORTED ANNOTATION ARGUMENT: '
+                                                                       + single_member.__class__.__name__)
     elif single_member.operator is not '+':
-        return 'UNSUPPORTED ANNOTATION OPERATOR: ' + single_member.operator
+        raise ParserExceptions.UnsupportedAnnotationOperationException('UNSUPPORTED ANNOTATION OPERATOR: '
+                                                                       + single_member.operator)
     else:
         return reconstruct_argument(single_member.lhs) + reconstruct_argument(single_member.rhs)
 

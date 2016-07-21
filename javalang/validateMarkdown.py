@@ -31,7 +31,8 @@ def reconstruct_argument(argument_piece):
         #strip opening and closing double quotes
         return argument_piece.value[1:-1]
     elif argument_piece.__class__.__name__ is not 'BinaryOperation':
-        return 'UNSUPPORTED ANNOTATION OPERATION: ' + argument_piece.__class__.__name__
+        raise ParserExceptions.UnsupportedAnnotationOperationException('UNSUPPORTED ANNOTATION OPERATION: '
+                                                                       + argument_piece.__class__.__name__)
     else:
         return reconstruct_argument(argument_piece.operandl) + reconstruct_argument(argument_piece.operandr)
 
@@ -47,10 +48,15 @@ def get_annotation_string(annotation):
     return annotation.name + get_annotation_argument(annotation.children)
 
 
-def get_field_string(field_declaration):
-    field_string = ' '.join([modifier for modifier in field_declaration.modifiers]) + ' '
-    field_string += field_declaration.type.name + ' ' + field_declaration.declarators[0].name
-    return field_string
+def get_plugin_properties(class_declaration):
+    plugin_properties = {}
+    for field_declaration in class_declaration.fields:
+        field_annotations = Set()
+        for annotation in field_declaration.annotations:
+            annotation_string = get_annotation_string(annotation)
+            field_annotations.add(annotation_string)
+        plugin_properties[field_declaration.declarators[0].name] = field_annotations
+    return plugin_properties
 
 
 def main():
@@ -61,27 +67,11 @@ def main():
     class_declaration = tree.types[0]
 
     # Print class information
-    print(get_class_signature(class_declaration))
+    print('Validating class: ' + get_class_signature(class_declaration))
     print
 
-    plugin_properties = {}
+    plugin_properties = get_plugin_properties(class_declaration)
 
-    # Print fields
-    for field_declaration in class_declaration.fields:
-        field_annotations = Set()
-        for annotation in field_declaration.annotations:
-            annotation_string = get_annotation_string(annotation)
-            field_annotations.add(annotation_string)
-            print('\t@' + annotation_string)
-        field_string = get_field_string(field_declaration)
-        plugin_properties[field_declaration.declarators[0].name] = field_annotations
-        print('\t' + field_string)
-        print
-
-    print('Found plugin properties:')
-    for property, value in plugin_properties.iteritems():
-        print('\t' + property + ': ' + str(value))
-        print
 
 if __name__ == "__main__":
     main()

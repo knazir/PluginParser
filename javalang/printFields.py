@@ -1,11 +1,8 @@
 #!/usr/bin/env python2
 
 import ParserExceptions
-
 import javalang
-
 import sys
-from sets import Set
 
 
 def parse_file():
@@ -28,10 +25,10 @@ def get_class_signature(class_declaration):
 
 def reconstruct_argument(argument_piece):
     if argument_piece.__class__.__name__ is 'Literal':
-        #strip opening and closing double quotes
-        return argument_piece.value[1:-1]
+        return argument_piece.value[1:-1]  #strip opening and closing double quotes
     elif argument_piece.__class__.__name__ is not 'BinaryOperation':
-        return 'UNSUPPORTED ANNOTATION OPERATION: ' + argument_piece.__class__.__name__
+        raise ParserExceptions.UnsupportedAnnotationOperationException('UNSUPPORTED ANNOTATION OPERATION: '
+                                                                       + argument_piece.__class__.__name__)
     else:
         return reconstruct_argument(argument_piece.operandl) + reconstruct_argument(argument_piece.operandr)
 

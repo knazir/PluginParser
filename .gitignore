@@ -1,3 +1,6 @@
+# Compiled files
+*.pyc
+
 # OSX
 .DS_STORE/
 
