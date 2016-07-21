@@ -67,10 +67,13 @@ def main():
     class_declaration = tree.types[0]
 
     # Print class information
-    print('Validating class: ' + get_class_signature(class_declaration))
-    print
+    print('Validating class: ' + get_class_signature(class_declaration) + '\n')
 
+    # Get config properties
     plugin_properties = get_plugin_properties(class_declaration)
+
+    # Open markdown file
+    markdown_filename = sys.argv[2]
 
 
 if __name__ == "__main__":
