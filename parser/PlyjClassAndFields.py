@@ -1,11 +1,16 @@
 #!/usr/bin/env python2
 
 import ParserExceptions
-
 import sys
 import plyj.parser
 import plyj.model as m
 
+def parse_file():
+    p = plyj.parser.Parser()
+    tree = p.parse_file(sys.argv[1])
+    if tree is None:
+        raise ParserExceptions.JavaSyntaxException("Error parsing syntax for file: " + sys.argv[1])
+    return tree
 
 def print_imports(tree):
     for import_decl in tree.import_declarations:
@@ -64,10 +69,7 @@ def print_field_name(field_decl, var_decl):
 
 def main():
     # Parse the Java file
-    p = plyj.parser.Parser()
-    tree = p.parse_file(sys.argv[1])
-    if tree is None:
-        raise ParserExceptions.JavaSyntaxException("Error parsing syntax for file: " + sys.argv[1])
+    tree = parse_file()
 
     # Get class information
     class_decl = get_class_declaration(tree)
