@@ -1,8 +1,11 @@
 #!/usr/bin/env python2
 
 import ParserExceptions
-import sys
+
 import javalang
+
+import sys
+from sets import Set
 
 
 def parse_file():
@@ -14,12 +17,12 @@ def parse_file():
     return tree
 
 
-def get_class_signature(class_decl):
-    class_signature = class_decl.name
-    if class_decl.extends is not None:
-        class_signature += ' extends ' + class_decl.extends.name
-    if class_decl.implements is not None:
-        class_signature += ' implements ' + ', '.join([interface.name for interface in class_decl.implements])
+def get_class_signature(class_declaration):
+    class_signature = class_declaration.name
+    if class_declaration.extends is not None:
+        class_signature += ' extends ' + class_declaration.extends.name
+    if class_declaration.implements is not None:
+        class_signature += ' implements ' + ', '.join([interface.name for interface in class_declaration.implements])
     return class_signature
 
 
@@ -40,9 +43,13 @@ def get_annotation_argument(children):
         return '("' + reconstruct_argument(children[1]) + '")'  # children[1] is the first argument
 
 
-def get_field_name(field_decl):
-    field_string = ' '.join([modifier for modifier in field_decl.modifiers]) + ' '
-    field_string += field_decl.type.name + ' ' + field_decl.declarators[0].name
+def get_annotation_string(annotation):
+    return annotation.name + get_annotation_argument(annotation.children)
+
+
+def get_field_string(field_declaration):
+    field_string = ' '.join([modifier for modifier in field_declaration.modifiers]) + ' '
+    field_string += field_declaration.type.name + ' ' + field_declaration.declarators[0].name
     return field_string
 
 
@@ -51,17 +58,17 @@ def main():
     tree = parse_file()
 
     # Get class information
-    class_decl = tree.types[0]
+    class_declaration = tree.types[0]
 
     # Print class information
-    print(get_class_signature(class_decl))
+    print(get_class_signature(class_declaration))
     print
 
     # Print fields
-    for field_decl in class_decl.fields:
-        for annotation in field_decl.annotations:
-            print('\t@' + annotation.name + get_annotation_argument(annotation.children))
-        print('\t' + get_field_name(field_decl))
+    for field_declaration in class_declaration.fields:
+        for annotation in field_declaration.annotations:
+            print('\t@' + get_annotation_string(annotation))
+        print('\t' + get_field_string(field_declaration))
         print
 
 if __name__ == "__main__":
