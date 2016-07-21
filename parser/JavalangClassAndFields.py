@@ -15,9 +15,9 @@ def parse_file():
 
 
 def get_class_signature(class_decl):
-    class_signature = class_decl.name;
+    class_signature = class_decl.name
     if class_decl.extends is not None:
-        class_signature += ' extends ' + class_decl.extends.name;
+        class_signature += ' extends ' + class_decl.extends.name
     if class_decl.implements is not None:
         class_signature += ' implements ' + ', '.join([interface.name for interface in class_decl.implements])
     return class_signature
