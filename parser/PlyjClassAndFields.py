@@ -1,5 +1,7 @@
 #!/usr/bin/env python2
 
+# Unfortunately, plyj does not support Java 8 and will fail parsing any Java 8 syntax
+
 import ParserExceptions
 import sys
 import plyj.parser
