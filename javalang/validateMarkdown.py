@@ -28,6 +28,7 @@ PROPERTY_NAME_END = ':**'
 NEXT_PROPERTY_DELIMITER = '\n\n'
 EXAMPLE_DELIMITER = 'Example\n-------'
 
+
 def parse_file(config_class_filepath):
     with open(config_class_filepath, 'r') as java_file:
         file_contents = java_file.read()
