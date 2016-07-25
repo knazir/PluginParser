@@ -111,63 +111,67 @@ def parse_markdown_file(markdown_file_path):
     # Find property section
     property_index = file_contents.find(PROPERTIES_DELIMITER)
     example_index = file_contents.find(EXAMPLE_DELIMITER)
+
+    markdown_filename = markdown_file_path[markdown_file_path.rfind('/') + 1:]
     if property_index is -1:
         raise Exception('Properties section not found: Unable to find property section in ' +
-                        sys.argv[2] + ' delimited by ' + PROPERTIES_DELIMITER + '.')
+                        markdown_filename + ' delimited by ' + PROPERTIES_DELIMITER + '.')
     elif example_index is -1:
         raise Exception('Example section not found: Unable to find example section in ' +
-                        sys.argv[2] + ' delimited by ' + EXAMPLE_DELIMITER + '.')
+                        markdown_filename + ' delimited by ' + EXAMPLE_DELIMITER + '.')
     elif example_index < property_index:
-        raise Exception('Example section found before properties section in ' + sys.argv[2])
+        raise Exception('Example section found before properties section in ' + markdown_filename)
 
     properties_section = file_contents[property_index + len(PROPERTIES_DELIMITER):example_index]
     return parse_property_names_from_markdown(properties_section)
 
 
-def print_notice(lenient, description):
-    if lenient:
-        print('WARNING: ' + description + '\n')
-    else:
+def print_notice(strict, description):
+    if strict:
         raise Exception('ERROR: ' + description + '\n')
+    else:
+        print('WARNING: ' + description + '\n')
 
 
-def validate_properties_present(config_filename, markdown_filename, plugin_properties, markdown_properties, lenient):
+def validate_properties_present(config_filename, markdown_filename, plugin_properties, markdown_properties, strict):
     # Validate plugin properties are in markdown file
     for plugin_property in plugin_properties:
         if plugin_property not in markdown_properties:
-            print_notice(lenient, 'Property ' + plugin_property + ' in ' + config_filename +
+            print_notice(strict, 'Property ' + plugin_property + ' in ' + config_filename +
                          ' not present in markdown file ' + markdown_filename)
 
     # Validate markdown properties are in plugin config
     for markdown_property in markdown_properties:
         if markdown_property not in plugin_properties:
-            print_notice(lenient, 'Property ' + markdown_property + ' in ' + markdown_filename +
+            print_notice(strict, 'Property ' + markdown_property + ' in ' + markdown_filename +
                          ' not present in config class ' + config_filename + '.')
 
 
-def validate_descriptions_match(config_filename, markdown_filename, plugin_properties, markdown_properties, lenient,
+def validate_descriptions_match(config_filename, markdown_filename, plugin_properties, markdown_properties, strict,
                                 print_difference):
         for plugin_property in plugin_properties:
             plugin_description = plugin_properties[plugin_property]['Description']
             if not plugin_description:
-                print_notice(lenient, 'Property ' + plugin_property + ' has no description specified in config class ' +
+                print_notice(strict, 'Property ' + plugin_property + ' has no description specified in config class ' +
                              config_filename + '.')
             else:
                 # Strip markdown format from description
                 raw_markdown_description = markdown(markdown_properties[plugin_property])
                 markdown_description = ''.join(BeautifulSoup(raw_markdown_description).findAll(text=True))
                 if not markdown_description:
-                    print_notice(lenient, 'Property ' + plugin_property + ' has no description specified in markdown ' +
+                    print_notice(strict, 'Property ' + plugin_property + ' has no description specified in markdown ' +
                                  'file ' + markdown_filename)
                 elif not markdown_description.startswith(plugin_description):
-                    print_notice(lenient, 'Description of property ' + plugin_property + ' in markdown file ' +
+                    print_notice(strict, 'Description of property ' + plugin_property + ' in markdown file ' +
                                  markdown_filename + ' does not begin with the same description found in the config ' +
                                  'class ' + config_filename + '.')
 
 
 def main():
-    # Setup arguments
+    # Setup arguments once to avoid redundant checks
     get_args()
+    strict = '--strict' in ARGS
+    print_difference = '--printdiff' in ARGS
 
     # Parse the Java file
     config_class_file_path = sys.argv[1]
@@ -175,11 +179,6 @@ def main():
 
     # Get class information
     class_declaration = tree.types[0]
-
-    # Print class information
-    class_name = class_declaration.name
-    header = 'Validating class: ' + get_class_signature(class_declaration)
-    print('=' * len(header) + '\n' + header + '\n' + '=' * len(header) + '\n')
 
     # Get config properties
     plugin_properties = get_plugin_properties(class_declaration)
@@ -191,12 +190,14 @@ def main():
     config_filename = config_class_file_path[config_class_file_path.rfind('/') + 1:]
     markdown_filename = markdown_file_path[markdown_file_path.rfind('/') + 1:]
 
-    lenient = '--lenient' in ARGS
-    print_difference = '--printdiff' in ARGS
+    # Print class information
+    class_name = class_declaration.name
+    header = 'Validating ' + class_name + ' against ' + markdown_filename
+    print('=' * len(header) + '\n' + header + '\n' + '=' * len(header) + '\n')
 
     # Begin validating properties
-    validate_properties_present(config_filename, markdown_filename, plugin_properties, markdown_properties, lenient)
-    validate_descriptions_match(config_filename, markdown_filename, plugin_properties, markdown_properties, lenient,
+    validate_properties_present(config_filename, markdown_filename, plugin_properties, markdown_properties, strict)
+    validate_descriptions_match(config_filename, markdown_filename, plugin_properties, markdown_properties, strict,
                                 print_difference)
 
 
