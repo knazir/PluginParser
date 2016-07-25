@@ -15,11 +15,12 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+
 import javalang
 import sys
+
 from BeautifulSoup import BeautifulSoup
 from markdown import markdown
-
 
 # Constants
 PROPERTIES_DELIMITER = 'Properties\n----------'
@@ -28,6 +29,13 @@ PROPERTY_NAME_END = ':**'
 NEXT_PROPERTY_DELIMITER = '\n\n'
 EXAMPLE_DELIMITER = 'Example\n-------'
 
+# Global
+ARGS = []
+
+
+def get_args():
+    if len(sys.argv) >= 4:
+        ARGS.extend(sys.argv[3:])
 
 def parse_file(config_class_file_path):
     with open(config_class_file_path, 'r') as java_file:
@@ -137,7 +145,8 @@ def validate_properties_present(config_filename, markdown_filename, plugin_prope
                          ' not present in config class ' + config_filename + '.')
 
 
-def validate_descriptions_match(config_filename, markdown_filename, plugin_properties, markdown_properties, lenient):
+def validate_descriptions_match(config_filename, markdown_filename, plugin_properties, markdown_properties, lenient,
+                                print_difference):
         for plugin_property in plugin_properties:
             plugin_description = plugin_properties[plugin_property]['Description']
             if not plugin_description:
@@ -157,6 +166,9 @@ def validate_descriptions_match(config_filename, markdown_filename, plugin_prope
 
 
 def main():
+    # Setup arguments
+    get_args()
+
     # Parse the Java file
     config_class_file_path = sys.argv[1]
     tree = parse_file(config_class_file_path)
@@ -166,7 +178,8 @@ def main():
 
     # Print class information
     class_name = class_declaration.name
-    print('Validating class: ' + get_class_signature(class_declaration))
+    header = 'Validating class: ' + get_class_signature(class_declaration)
+    print('=' * len(header) + '\n' + header + '\n' + '=' * len(header) + '\n')
 
     # Get config properties
     plugin_properties = get_plugin_properties(class_declaration)
@@ -178,11 +191,13 @@ def main():
     config_filename = config_class_file_path[config_class_file_path.rfind('/') + 1:]
     markdown_filename = markdown_file_path[markdown_file_path.rfind('/') + 1:]
 
-    lenient = (len(sys.argv) >= 4) and (sys.argv[3] == '--lenient')
+    lenient = '--lenient' in ARGS
+    print_difference = '--printdiff' in ARGS
 
     # Begin validating properties
     validate_properties_present(config_filename, markdown_filename, plugin_properties, markdown_properties, lenient)
-    validate_descriptions_match(config_filename, markdown_filename, plugin_properties, markdown_properties, lenient)
+    validate_descriptions_match(config_filename, markdown_filename, plugin_properties, markdown_properties, lenient,
+                                print_difference)
 
 
 if __name__ == "__main__":
