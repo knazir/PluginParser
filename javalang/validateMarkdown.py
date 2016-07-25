@@ -29,8 +29,8 @@ NEXT_PROPERTY_DELIMITER = '\n\n'
 EXAMPLE_DELIMITER = 'Example\n-------'
 
 
-def parse_file(config_class_filepath):
-    with open(config_class_filepath, 'r') as java_file:
+def parse_file(config_class_file_path):
+    with open(config_class_file_path, 'r') as java_file:
         file_contents = java_file.read()
     tree = javalang.parse.parse(file_contents)
     if len(tree.types) is 0:
@@ -95,9 +95,9 @@ def parse_property_names_from_markdown(properties_section):
     return markdown_properties
 
 
-def parse_markdown_file(markdown_filepath):
+def parse_markdown_file(markdown_file_path):
     # Read file contents
-    with open(markdown_filepath, 'r') as markdown_file:
+    with open(markdown_file_path, 'r') as markdown_file:
         file_contents = markdown_file.read()
 
     # Find property section
@@ -158,8 +158,8 @@ def validate_descriptions_match(config_filename, markdown_filename, plugin_prope
 
 def main():
     # Parse the Java file
-    config_class_filepath = sys.argv[1]
-    tree = parse_file(config_class_filepath)
+    config_class_file_path = sys.argv[1]
+    tree = parse_file(config_class_file_path)
 
     # Get class information
     class_declaration = tree.types[0]
@@ -171,12 +171,12 @@ def main():
     # Get config properties
     plugin_properties = get_plugin_properties(class_declaration)
 
-    # Parse markdown file
-    markdown_filepath = sys.argv[2]
-    markdown_properties = parse_markdown_file(markdown_filepath)
+    # Parse the markdown file
+    markdown_file_path = sys.argv[2]
+    markdown_properties = parse_markdown_file(markdown_file_path)
 
-    config_filename = config_class_filepath[config_class_filepath.rfind('/') + 1:]
-    markdown_filename = markdown_filepath[markdown_filepath.rfind('/') + 1:]
+    config_filename = config_class_file_path[config_class_file_path.rfind('/') + 1:]
+    markdown_filename = markdown_file_path[markdown_file_path.rfind('/') + 1:]
 
     lenient = (len(sys.argv) >= 4) and (sys.argv[3] == '--lenient')
 
