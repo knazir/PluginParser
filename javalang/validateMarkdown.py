@@ -23,7 +23,6 @@ from markdown import markdown
 
 # Constants
 PROPERTIES_DELIMITER = 'Properties\n----------'
-PROPERTY_NAME_REGEX = '\*\*.*\*\*'
 PROPERTY_NAME_START = '**'
 PROPERTY_NAME_END = ':**'
 NEXT_PROPERTY_DELIMITER = '\n\n'
