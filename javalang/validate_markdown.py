@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#  Copyright © 2015-2016 Cask Data, Inc.
+#  Copyright © 2016 Cask Data, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 import javalang
 import sys
 
+from argparse import ArgumentParser
 from BeautifulSoup import BeautifulSoup
 from markdown import markdown
 
@@ -28,20 +29,25 @@ PROPERTY_NAME_START = '**'
 PROPERTY_NAME_END = ':**'
 NEXT_PROPERTY_DELIMITER = '\n\n'
 EXAMPLE_DELIMITER = 'Example\n-------'
-
-# Global
-ARGS = []
+TERMINAL_SUPERCLASS = 'PluginConfig'
 
 
-def get_args():
-    if len(sys.argv) >= 4:
-        ARGS.extend(sys.argv[3:])
+def setup_args():
+    parser = ArgumentParser(description='Validate Hydrator Plugin Markdown Consistency')
+    parser.add_argument('--markdown', help='Path to the markdwon (.md) file.')
+    parser.add_argument('--plugin', help='Path to plugin (.java) file.')
+    parser.add_argument('--strict', action='store_true',
+                        help='Causes the validator to throw an exception when encountering an inconsistency.')
+    parser.add_argument('--showdiff', action='store_true', help='Prints descriptions of markdown property ' +
+                                                                'inconsistencies to output.')
+    return parser.parse_args()
+
 
 def parse_file(config_class_file_path):
     with open(config_class_file_path, 'r') as java_file:
         file_contents = java_file.read()
     tree = javalang.parse.parse(file_contents)
-    if len(tree.types) is 0:
+    if len(tree.types) == 0:
         raise Exception('Class not found: Unable to find Java class in ' + sys.argv[1])
     return tree
 
@@ -128,53 +134,57 @@ def parse_markdown_file(markdown_file_path):
 
 def print_notice(strict, description):
     if strict:
-        raise Exception('ERROR: ' + description + '\n')
+        raise Exception('ERROR: ' + description)
     else:
-        print('WARNING: ' + description + '\n')
+        print('WARNING: ' + description)
+    print
 
 
-def validate_properties_present(config_filename, markdown_filename, plugin_properties, markdown_properties, strict):
+def validate_properties_present(config_filename, markdown_filename, plugin_properties, markdown_properties, args):
     # Validate plugin properties are in markdown file
     for plugin_property in plugin_properties:
         if plugin_property not in markdown_properties:
-            print_notice(strict, 'Property ' + plugin_property + ' in ' + config_filename +
+            print_notice(args.strict, 'Property ' + plugin_property + ' in ' + config_filename +
                          ' not present in markdown file ' + markdown_filename)
 
     # Validate markdown properties are in plugin config
     for markdown_property in markdown_properties:
         if markdown_property not in plugin_properties:
-            print_notice(strict, 'Property ' + markdown_property + ' in ' + markdown_filename +
+            print_notice(args.strict, 'Property ' + markdown_property + ' in ' + markdown_filename +
                          ' not present in config class ' + config_filename + '.')
 
 
-def validate_descriptions_match(config_filename, markdown_filename, plugin_properties, markdown_properties, strict,
-                                print_difference):
+def validate_descriptions_match(config_filename, markdown_filename, plugin_properties, markdown_properties, args):
         for plugin_property in plugin_properties:
             plugin_description = plugin_properties[plugin_property]['Description']
             if not plugin_description:
-                print_notice(strict, 'Property ' + plugin_property + ' has no description specified in config class ' +
-                             config_filename + '.')
+                print_notice(args.strict, 'Property ' + plugin_property + ' has no description specified in config ' +
+                             'class' + config_filename + '.')
             else:
                 # Strip markdown format from description
                 raw_markdown_description = markdown(markdown_properties[plugin_property])
                 markdown_description = ''.join(BeautifulSoup(raw_markdown_description).findAll(text=True))
                 if not markdown_description:
-                    print_notice(strict, 'Property ' + plugin_property + ' has no description specified in markdown ' +
-                                 'file ' + markdown_filename)
-                elif not markdown_description.startswith(plugin_description):
-                    print_notice(strict, 'Description of property ' + plugin_property + ' in markdown file ' +
+                    print_notice(args.strict, 'Property ' + plugin_property + ' has no description specified in ' +
+                                 'markdown file ' + markdown_filename)
+
+                markdown_description = markdown_description.replace('\n', ' ')
+                if not markdown_description.startswith(plugin_description):
+                    print_notice(args.strict, 'Description of property ' + plugin_property + ' in markdown file ' +
                                  markdown_filename + ' does not begin with the same description found in the config ' +
                                  'class ' + config_filename + '.')
+                    if args.showdiff:
+                        print('\t* Plugin:\t' + plugin_description)
+                        print('\t* Markdown:\t' + markdown_description)
+                        print
 
 
 def main():
     # Setup arguments once to avoid redundant checks
-    get_args()
-    strict = '--strict' in ARGS
-    print_difference = '--printdiff' in ARGS
+    args = setup_args()
 
     # Parse the Java file
-    config_class_file_path = sys.argv[1]
+    config_class_file_path = args.plugin
     tree = parse_file(config_class_file_path)
 
     # Get class information
@@ -184,7 +194,7 @@ def main():
     plugin_properties = get_plugin_properties(class_declaration)
 
     # Parse the markdown file
-    markdown_file_path = sys.argv[2]
+    markdown_file_path = args.markdown
     markdown_properties = parse_markdown_file(markdown_file_path)
 
     config_filename = config_class_file_path[config_class_file_path.rfind('/') + 1:]
@@ -196,9 +206,8 @@ def main():
     print('=' * len(header) + '\n' + header + '\n' + '=' * len(header) + '\n')
 
     # Begin validating properties
-    validate_properties_present(config_filename, markdown_filename, plugin_properties, markdown_properties, strict)
-    validate_descriptions_match(config_filename, markdown_filename, plugin_properties, markdown_properties, strict,
-                                print_difference)
+    validate_properties_present(config_filename, markdown_filename, plugin_properties, markdown_properties, args)
+    validate_descriptions_match(config_filename, markdown_filename, plugin_properties, markdown_properties, args)
 
 
 if __name__ == "__main__":
