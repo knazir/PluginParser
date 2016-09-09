@@ -18,8 +18,6 @@
 
 import javalang
 import os
-import sys
-import unicodedata
 
 from argparse import ArgumentParser
 from BeautifulSoup import BeautifulSoup
@@ -36,7 +34,7 @@ PLUGIN_TYPES = {
     "BatchSource.PLUGIN_TYPE": "batchsource",
     "batchsource": "batchsource",
 
-    "RealtimeSink.PLUGIN_TYPE" : "realtimesink",
+    "RealtimeSink.PLUGIN_TYPE": "realtimesink",
     "realtimesink": "realtimesink",
 
     "RealtimeSource.PLUGIN_TYPE": "realtimesource",
@@ -57,18 +55,16 @@ PLUGIN_TYPES = {
     "Action.PLUGIN_TYPE": "action",
     "action": "action",
 
-    "PostAction.PLUGIN_TYPE" : "postaction",
+    "PostAction.PLUGIN_TYPE": "postaction",
     "postaction": "postaction"
 }
 
 # Markdown Constants
-PROPERTIES_DELIMITER = 'Properties\n----------'
-CONFIGURATION_DELIMITER = 'Configuration\n-------------'
+PROPERTIES_DELIMITERS = ['Properties\n----------', 'Configuration\n-------------']
 PROPERTY_NAME_START = '**'
 PROPERTY_NAME_END = ':**'
 NEXT_PROPERTY_DELIMITER = '\n\n'
-EXAMPLE_DELIMITER = 'Example\n-------'
-EXAMPLES_DELIMITER = 'Examples\n--------'
+EXAMPLE_DELIMITERS = ['Example\n-------', 'Examples\n--------']
 TERMINAL_SUPERCLASS = 'PluginConfig'
 
 
@@ -87,7 +83,7 @@ def parse_file(config_class_file_path, class_filename):
         file_contents = java_file.read()
     tree = javalang.parse.parse(file_contents)
     if len(tree.types) == 0:
-        raise Exception('Class not found: Unable to find Java class in ' + config_class_file_path)
+        raise Exception('Class not found: Unable to find Java class in "' + class_filename + ".")
     return tree
 
 
@@ -104,7 +100,7 @@ def reconstruct_argument(argument_piece):
     if argument_piece.__class__.__name__ == 'Literal':
         # strip opening and closing double quotes
         return argument_piece.value[1:-1]
-    elif argument_piece.__class__.__name__=='BinaryOperation':
+    elif argument_piece.__class__.__name__ == 'BinaryOperation':
         return reconstruct_argument(argument_piece.operandl) + reconstruct_argument(argument_piece.operandr)
     elif argument_piece.__class__.__name__ == 'MemberReference':
         return argument_piece.qualifier + '.' + argument_piece.member
@@ -178,7 +174,7 @@ def get_plugin_config_properties(config_class_declaration):
     return plugin_properties
 
 
-def parse_property_names_from_markdown(properties_section, markdown_filename):
+def parse_property_names_from_markdown(properties_section):
     markdown_properties = {}
 
     while properties_section and properties_section != '\n':
@@ -204,7 +200,7 @@ def find_markdown_file(plugin_path, plugin_properties):
     return docs_path + plugin_properties['name'] + '-' + plugin_properties['type'] + '.md'
 
 
-def try_to_find(contents, *delims):
+def try_to_find(contents, delims):
     for delimiter in delims:
         index = contents.find(delimiter)
         if index != -1:
@@ -219,24 +215,24 @@ def parse_markdown_file(markdown_file_path, markdown_filename, args):
             file_contents = markdown_file.read()
 
         # Find property section
-        property_index = try_to_find(file_contents, PROPERTIES_DELIMITER, CONFIGURATION_DELIMITER)
-        example_index = try_to_find(file_contents, EXAMPLE_DELIMITER, EXAMPLES_DELIMITER)
+        property_index = try_to_find(file_contents, PROPERTIES_DELIMITERS)
+        example_index = try_to_find(file_contents, EXAMPLE_DELIMITERS)
 
         if property_index is -1:
-            print_notice(args.strict, 'Unable to find property section in ' + markdown_filename + ' delimited by ' +
-                            PROPERTIES_DELIMITER + '.')
+            print_notice(args.strict, 'Unable to find property section in "' + markdown_filename +
+                         '" delimited by:\n' + '\nor\n'.join(PROPERTIES_DELIMITERS) + '.')
         elif example_index is -1:
-            print_notice(args.strict, 'Unable to find example section in ' + markdown_filename + ' delimited by ' +
-                            EXAMPLE_DELIMITER + '.')
+            print_notice(args.strict, 'Unable to find example section in "' + markdown_filename +
+                         '" delimited by:\n' + '\nor\n'.join(EXAMPLE_DELIMITERS) + '.')
         elif example_index < property_index:
-            print_notice(args.strict, 'Example section found before properties section in ' + markdown_filename)
+            print_notice(args.strict, 'Example section found before properties section in "' + markdown_filename + '".')
 
-        properties_section = file_contents[property_index + len(PROPERTIES_DELIMITER):example_index]
-        return parse_property_names_from_markdown(properties_section, markdown_filename)
+        # TODO: change to length of specific delimiter found
+        properties_section = file_contents[property_index + len(PROPERTIES_DELIMITERS[0]):example_index]
+        return parse_property_names_from_markdown(properties_section)
     except IOError:
-        print_notice(args.strict, 'Unable to find markdown file ' + markdown_file_path + '.')
+        print_notice(args.strict, 'Unable to find markdown file "' + markdown_file_path + '".')
         return None
-
 
 
 def print_notice(strict, description):
@@ -251,14 +247,14 @@ def validate_properties_present(config_filename, markdown_filename, plugin_prope
     # Validate plugin properties are in markdown file
     for plugin_property in plugin_properties:
         if plugin_property not in markdown_properties:
-            print_notice(args.strict, 'Property ' + plugin_property + ' in ' + config_filename +
-                         ' not present in markdown file ' + markdown_filename)
+            print_notice(args.strict, 'Property "' + plugin_property + '" in "' + config_filename +
+                         '" not present in markdown file "' + markdown_filename + '".')
 
     # Validate markdown properties are in plugin config
     for markdown_property in markdown_properties:
         if markdown_property not in plugin_properties:
-            print_notice(args.strict, 'Property ' + markdown_property + ' in ' + markdown_filename +
-                         ' not present in config class ' + config_filename + '.')
+            print_notice(args.strict, 'Property "' + markdown_property + '" in "' + markdown_filename +
+                         '" not present in config class "' + config_filename + '".')
 
 
 def validate_descriptions_match(config_filename, markdown_filename, plugin_properties, markdown_properties, args):
@@ -266,13 +262,13 @@ def validate_descriptions_match(config_filename, markdown_filename, plugin_prope
             try:
                 plugin_description = plugin_properties[plugin_property]['Description']
             except KeyError:
-                print_notice(args.strict, 'Property ' + plugin_property + ' has no description specified in ' +
-                             config_filename + '.')
+                print_notice(args.strict, 'Property "' + plugin_property + '" has no description specified in "' +
+                             config_filename + '".')
                 continue
 
             if not plugin_description:
-                print_notice(args.strict, 'Property ' + plugin_property + ' has no description specified in config ' +
-                             'class' + config_filename + '.')
+                print_notice(args.strict, 'Property "' + plugin_property + '" has no description specified in config ' +
+                             'class "' + config_filename + '".')
             else:
                 try:
                     # Strip markdown format from description
@@ -280,23 +276,21 @@ def validate_descriptions_match(config_filename, markdown_filename, plugin_prope
                     markdown_description = ''.join(BeautifulSoup(raw_markdown_description).findAll(text=True))
                     if not markdown_description:
                         print_notice(args.strict, 'Property ' + plugin_property + ' has no description specified in ' +
-                                     'markdown file ' + markdown_filename)
+                                     'markdown file "' + markdown_filename + '".')
 
                     markdown_description = markdown_description.replace('\n', ' ')
                     if not markdown_description.startswith(plugin_description):
-                        print_notice(args.strict, 'Description of property ' + plugin_property + ' in markdown file ' +
-                                     markdown_filename + ' does not begin with the same description found in the config ' +
-                                     'class ' + config_filename + '.')
+                        print_notice(args.strict, 'Description of property "' + plugin_property + '" in markdown ' +
+                                     'file "' + markdown_filename + '" does not begin with the same description ' +
+                                     'found in the config class "' + config_filename + '".')
                         if args.showdiff:
                             print('\t* Plugin:\t' + plugin_description)
                             print('\t* Markdown:\t' + markdown_description)
                             print
                 except KeyError:
-                    print_notice(args.strict, 'Property ' + plugin_property + ' has no description specified in ' +
-                                 'markdown file ' + markdown_filename)
+                    print_notice(args.strict, 'Property "' + plugin_property + '" has no description specified in ' +
+                                 'markdown file "' + markdown_filename + '".')
                     continue
-
-
 
 
 def validate(args, plugin_path):
@@ -328,18 +322,17 @@ def validate(args, plugin_path):
     markdown_file_path = find_markdown_file(plugin_path, plugin_properties)
     markdown_filename = markdown_file_path[markdown_file_path.rfind('/') + 1:]
 
-    if class_filename == 'NaiveBayesClassifier.java':
-        print('ok')
+    # Print class information
+    header = 'Validating ' + plugin_class_declaration.name + ' against ' + markdown_filename
+    print('=' * len(header) + '\n' + header + '\n' + '=' * len(header) + '\n')
 
     markdown_properties = parse_markdown_file(markdown_file_path, markdown_filename, args)
+
     # If no markdown file was found
     if markdown_properties is None:
+        print('Done.')
+        print
         return
-
-    # Print class information
-    plugin_class_name = config_class_declaration.name
-    header = 'Validating ' + plugin_class_name + ' against ' + markdown_filename
-    print('=' * len(header) + '\n' + header + '\n' + '=' * len(header) + '\n')
 
     # Begin validating properties
     validate_properties_present(class_filename, markdown_filename, plugin_config_properties, markdown_properties, args)
@@ -351,9 +344,9 @@ def validate(args, plugin_path):
 
 def run_validator(args):
     for root_dir, sub_dirs, files in os.walk(args.path):
-        for file in files:
-            if file.endswith('.java'):
-                validate(args, root_dir + '/' + file)
+        for filename in files:
+            if filename.endswith('.java'):
+                validate(args, root_dir + '/' + filename)
 
 
 def main():
