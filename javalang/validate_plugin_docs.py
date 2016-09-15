@@ -218,12 +218,12 @@ def parse_markdown_file(markdown_file_path, markdown_filename, args):
         property_index = try_to_find(file_contents, PROPERTIES_DELIMITERS)
         example_index = try_to_find(file_contents, EXAMPLE_DELIMITERS)
 
-        if property_index is -1:
+        if property_index == -1:
             print_notice(args.strict, 'Unable to find property section in "' + markdown_filename +
-                         '" delimited by:\n' + '\nor\n'.join(PROPERTIES_DELIMITERS) + '.')
-        elif example_index is -1:
+                         '" delimited by:\n' + '\nor\n'.join(PROPERTIES_DELIMITERS) + '')
+        elif example_index == -1:
             print_notice(args.strict, 'Unable to find example section in "' + markdown_filename +
-                         '" delimited by:\n' + '\nor\n'.join(EXAMPLE_DELIMITERS) + '.')
+                         '" delimited by:\n' + '\nor\n'.join(EXAMPLE_DELIMITERS) + '')
         elif example_index < property_index:
             print_notice(args.strict, 'Example section found before properties section in "' + markdown_filename + '".')
 
